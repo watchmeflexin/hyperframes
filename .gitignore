@@ -133,3 +133,4 @@ test-outputs/
 .claude/
 docs/superpowers/
 .worktrees
+*.deb
