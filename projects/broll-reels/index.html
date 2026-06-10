@@ -41,25 +41,38 @@
         background: #000;
       }
 
-      .clip {
+      /* Wrapper: controls opacity + scale for transitions */
+      .clip-wrap {
         position: absolute;
         inset: 0;
         width: 1080px;
         height: 1920px;
-        object-fit: cover;
-        object-position: center center;
+        overflow: hidden;
         opacity: 0;
+        transform-origin: center center;
       }
 
+      /* Video fills the wrap and can be scaled for Ken Burns */
+      .clip-wrap video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center center;
+        transform-origin: center center;
+      }
+
+      /* Subtle dark vignette */
       #vignette {
         position: absolute;
         inset: 0;
         z-index: 20;
         pointer-events: none;
         background: radial-gradient(
-          ellipse at center,
-          transparent 50%,
-          rgba(0, 0, 0, 0.6) 100%
+          ellipse at 50% 60%,
+          transparent 42%,
+          rgba(0, 0, 0, 0.65) 100%
         );
       }
     </style>
@@ -73,65 +86,75 @@
       data-start="0"
       data-duration="10.5"
     >
-      <video
-        id="clip1"
-        class="clip"
-        src="assets/clip1.mov"
-        muted
-        playsinline
-        data-start="0"
-        data-duration="1.45"
-        data-track-index="1"
-      ></video>
+      <!-- Clip 1 -->
+      <div class="clip-wrap" id="w1">
+        <video
+          id="clip1"
+          src="assets/clip1.mov"
+          muted
+          playsinline
+          data-start="0"
+          data-duration="1.45"
+          data-track-index="1"
+        ></video>
+      </div>
 
-      <video
-        id="clip2"
-        class="clip"
-        src="assets/clip2.mov"
-        muted
-        playsinline
-        data-start="2.1"
-        data-duration="1.0"
-        data-track-index="2"
-      ></video>
+      <!-- Clip 2 -->
+      <div class="clip-wrap" id="w2">
+        <video
+          id="clip2"
+          src="assets/clip2.mov"
+          muted
+          playsinline
+          data-start="2.1"
+          data-duration="1.0"
+          data-track-index="2"
+        ></video>
+      </div>
 
-      <video
-        id="clip3"
-        class="clip"
-        src="assets/clip3.mov"
-        muted
-        playsinline
-        data-start="3.2"
-        data-duration="2.66"
-        data-track-index="3"
-      ></video>
+      <!-- Clip 3 -->
+      <div class="clip-wrap" id="w3">
+        <video
+          id="clip3"
+          src="assets/clip3.mov"
+          muted
+          playsinline
+          data-start="3.2"
+          data-duration="2.66"
+          data-track-index="3"
+        ></video>
+      </div>
 
-      <video
-        id="clip4"
-        class="clip"
-        src="assets/clip4.mov"
-        muted
-        playsinline
-        data-start="5.9"
-        data-duration="1.14"
-        data-track-index="4"
-      ></video>
+      <!-- Clip 4 -->
+      <div class="clip-wrap" id="w4">
+        <video
+          id="clip4"
+          src="assets/clip4.mov"
+          muted
+          playsinline
+          data-start="5.9"
+          data-duration="1.14"
+          data-track-index="4"
+        ></video>
+      </div>
 
-      <video
-        id="clip5"
-        class="clip"
-        src="assets/clip5.mov"
-        muted
-        playsinline
-        data-start="7.1"
-        data-duration="2.33"
-        data-track-index="5"
-      ></video>
+      <!-- Clip 5 -->
+      <div class="clip-wrap" id="w5">
+        <video
+          id="clip5"
+          src="assets/clip5.mov"
+          muted
+          playsinline
+          data-start="7.1"
+          data-duration="2.33"
+          data-track-index="5"
+        ></video>
+      </div>
 
       <div id="vignette"></div>
     </div>
 
-    <!-- Dub audio (voice-over) -->
+    <!-- Voice-over dub -->
     <audio
       id="dub"
       src="assets/dub.mov"
@@ -141,32 +164,52 @@
       data-volume="1"
     ></audio>
 
+    <!-- Generated ambient music -->
+    <audio
+      id="music"
+      src="assets/music.mp3"
+      data-start="0"
+      data-duration="10.5"
+      data-track-index="11"
+      data-volume="0.28"
+    ></audio>
+
     <script>
       window.__timelines = window.__timelines || {};
 
-      const FADE = 0.35;
-
       const tl = gsap.timeline({ paused: true });
 
-      // Clip 1: visible 0 – 2.45s
-      tl.to("#clip1", { opacity: 1, duration: FADE, ease: "power1.in" }, 0);
-      tl.to("#clip1", { opacity: 0, duration: FADE, ease: "power1.out" }, 2.1);
+      // ── Transition config ─────────────────────────────────────────────────
+      // Each clip: fade+scale in, hold with slow Ken Burns zoom, fade+scale out.
+      // Overlap 0.4s between clips for a smooth dissolve.
 
-      // Clip 2: visible 2.1 – 3.55s
-      tl.to("#clip2", { opacity: 1, duration: FADE, ease: "power1.in" }, 2.1);
-      tl.to("#clip2", { opacity: 0, duration: FADE, ease: "power1.out" }, 3.2);
+      const FADE_IN = 0.38;
+      const FADE_OUT = 0.38;
 
-      // Clip 3: visible 3.2 – 6.2s
-      tl.to("#clip3", { opacity: 1, duration: FADE, ease: "power1.in" }, 3.2);
-      tl.to("#clip3", { opacity: 0, duration: FADE, ease: "power1.out" }, 5.9);
+      // Clip timings [wrapId, videoId, start, end, kenBurnsFrom, kenBurnsTo, originX, originY]
+      const clips = [
+        { w: "#w1", v: "#clip1", s: 0,   e: 2.45, kbF: 1.06, kbT: 1.0,  ox: "52%", oy: "48%" },
+        { w: "#w2", v: "#clip2", s: 2.1,  e: 3.55, kbF: 1.0,  kbT: 1.07, ox: "48%", oy: "52%" },
+        { w: "#w3", v: "#clip3", s: 3.2,  e: 6.3,  kbF: 1.05, kbT: 1.0,  ox: "50%", oy: "45%" },
+        { w: "#w4", v: "#clip4", s: 5.9,  e: 7.45, kbF: 1.0,  kbT: 1.08, ox: "50%", oy: "55%" },
+        { w: "#w5", v: "#clip5", s: 7.1,  e: 10.5, kbF: 1.06, kbT: 1.0,  ox: "50%", oy: "50%" },
+      ];
 
-      // Clip 4: visible 5.9 – 7.4s
-      tl.to("#clip4", { opacity: 1, duration: FADE, ease: "power1.in" }, 5.9);
-      tl.to("#clip4", { opacity: 0, duration: FADE, ease: "power1.out" }, 7.1);
+      clips.forEach(({ w, v, s, e, kbF, kbT, ox, oy }) => {
+        const dur = e - s;
 
-      // Clip 5: visible 7.1 – 10.5s
-      tl.to("#clip5", { opacity: 1, duration: FADE, ease: "power1.in" }, 7.1);
-      tl.to("#clip5", { opacity: 0, duration: FADE, ease: "power1.out" }, 10.15);
+        // Set Ken Burns origin on the video
+        gsap.set(v, { transformOrigin: ox + " " + oy, scale: kbF });
+
+        // Wrap: fade + slight scale up on entrance
+        tl.fromTo(w, { opacity: 0, scale: 1.04 }, { opacity: 1, scale: 1, duration: FADE_IN, ease: "power2.out" }, s);
+
+        // Video: Ken Burns slow zoom over the full clip duration
+        tl.to(v, { scale: kbT, duration: dur, ease: "none" }, s);
+
+        // Wrap: fade + slight scale down on exit
+        tl.to(w, { opacity: 0, scale: 0.97, duration: FADE_OUT, ease: "power2.in" }, e - FADE_OUT);
+      });
 
       window.__timelines["broll-reels"] = tl;
     </script>
